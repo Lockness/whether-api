@@ -25,3 +25,5 @@ aws lambda update-function-code \
 --function-name arn:aws:lambda:us-east-1:237093315022:function:${lambda_function} \
 --region us-east-1 \
 --zip-file fileb://${path}/${lambda_function}-deployment.zip
+
+cd ../../
