@@ -1,6 +1,6 @@
 #!/bin/bash
 
-lambda_function=[whateverWeCallIt]
+lambda_function=whether_api
 
 # Remove old deployment package data
 rm -r ./deploy/tmp
@@ -22,6 +22,6 @@ zip -r -9 ../${lambda_function}-deployment.zip *
 
 # Deploy package to lambda function
 aws lambda update-function-code \
---function-name arn:aws:lambda:us-east-1:ACCOUNT_NUMBER:function:${lambda_function} \
+--function-name arn:aws:lambda:us-east-1:237093315022:function:${lambda_function} \
 --region us-east-1 \
 --zip-file fileb://${path}/${lambda_function}-deployment.zip
