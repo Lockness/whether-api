@@ -1,3 +1,4 @@
 .idea/
 deploy/
 *__pycache__*
+*.prof
