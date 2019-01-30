@@ -106,6 +106,7 @@ class WhetherAlgorithm:
         # Return None
         return None
 
+
     @staticmethod
     def haversine(point1_tuple, point2_tuple):
         """
