@@ -4,16 +4,11 @@ import src.constants
 
 
 def route(event, context):
-
     # Get params
-    path = event['path']
     params = event['queryStringParameters']
 
-    if path == '/whether':
-        directions_response = whether.whether_handler(params)
-        return create_response(directions_response, 200)
-
-    return create_response(event)
+    directions_response = whether.whether_handler(params)
+    return create_response(directions_response, 200)
 
 
 def create_response(body='', status=400):
