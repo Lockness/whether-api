@@ -11,7 +11,7 @@ path=$(pwd)
 cd ../
 
 # Copy all custom .py files to directory
-cp -r ./lambda_function.py src ./deploy/tmp/
+cp -r ./router.py src ./deploy/tmp/
 
 # Install all library requirements
 pip install -r ./requirements.txt -t ./deploy/tmp/
