@@ -1,7 +1,6 @@
 import googlemaps
 from datetime import datetime
 import math
-import geopy.distance
 from src.modules.GoogleClient import GoogleClient
 
 

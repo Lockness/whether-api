@@ -1,42 +1,53 @@
-import requests
 import datetime
+import asyncio
+import aiohttp
 from dateutil.parser import parse
 
 
 class WeatherApiHelper:
 
-    @staticmethod
-    def get_weather_at_markers(markers):
-        # Get the current UTC time
+    def __init__(self):
+        self.BASE_URL = 'https://api.weather.gov/points/{lat},{lng}/forecast/hourly'
+
+    async def get_response(self, session, marker):
+        url = self.BASE_URL.format(
+            lat=marker['lat'],
+            lng=marker['lng']
+        )
+        async with session.get(url) as resp:
+            data = await resp.json()
+        return data
+
+    async def download_one(self, marker):
+        base_headers = {
+            'accept': 'application/geo+json',
+            'user-agent': 'locknesssoftware/whether-application'
+        }
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), headers=base_headers) as session:
+            data = await self.get_response(session, marker)
+        return data, marker
+
+    def get_weather_at_markers(self, markers):
+        loop = asyncio.get_event_loop()
+        to_do = [self.download_one(marker) for marker in markers]
+        wait_coro = asyncio.wait(to_do)
+        res, _ = loop.run_until_complete(wait_coro)
         now = datetime.datetime.now()
 
-        # Iterate through the markers
-        for i in range(0, len(markers)):
-            # Make weather query for each coordinate
-            url = 'https://api.weather.gov/points/{lat},{lng}/forecast/hourly'.format(
-                lat=markers[i]['lat'],
-                lng=markers[i]['lng']
-            )
-            headers = {
-                'accept': 'application/geo+json',
-                'user-agent': 'locknesssoftware/whether-application'
-            }
-            r = requests.get(url=url, headers=headers)
-            data = r.json()
+        markers = []
+        for response in res:
+            weather_response = response.result()[0]
+            marker = response.result()[1]
+            utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
-            # Get utc time from now for marker
-            utc_time_from_now = now + datetime.timedelta(minutes=markers[i]['arrival_time'])
-
-            # Iterate over the hourly weather data
-            for period in data['properties']['periods']:
-                # Convert the start/end time of each period to readable timestamp
+            for period in weather_response['properties']['periods']:
                 period_start_time = parse(period['startTime']).replace(tzinfo=None)
                 period_end_time = parse(period['endTime']).replace(tzinfo=None)
 
                 # If the utc time at the marker is within the period, add the weather data to the marker
                 if period_start_time <= utc_time_from_now < period_end_time:
-                    markers[i]['weather_data'] = period
+                    marker['weather_data'] = period
+                    markers.append(marker)
                     # Jump to next marker
                     break
-
         return markers
