@@ -181,7 +181,7 @@ class WhetherAlgorithm:
         on the earth (specified in decimal degrees)
 
         :param coords: iterable of [lat1, lon1, lat2, lon2]
-        :return: distance in meters
+        :return: distance in miles
         """
         lat1, lon1, lat2, lon2 = coords
 
@@ -194,10 +194,10 @@ class WhetherAlgorithm:
         a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
         c = 2 * math.asin(math.sqrt(a))
 
-        # Radius of earth in kilometers is 6371
-        m = 6371000 * c
+        # Radius of earth in kilometers is 3,959 miles
+        miles = 3959 * c
 
-        return m
+        return miles
 
     # def move_along_path(self, points, distance, index=0):
     #     if index < len(points) - 1:
