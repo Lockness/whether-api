@@ -69,7 +69,7 @@ class WhetherAlgorithm:
 
         # append remainders to tweeners in order to np apply
         tweeners = sequ_points[uns + 1]
-        remainders = (distance - mods[uns]) * 1000
+        remainders = (distance - mods[uns])
 
         # look for and process duplicates
         m_dup = (cnts > 1).nonzero()[0]
@@ -86,7 +86,7 @@ class WhetherAlgorithm:
             count = np.concatenate(np.array(list(map(ar1, count))))
 
             more_tweeners = sequ_points[dups + 1]
-            more_remainders = ((distance * count) + mods[dups]) * 1000
+            more_remainders = ((distance * count) + mods[dups])
 
             # combine
             tweeners = np.vstack((tweeners, more_tweeners))
