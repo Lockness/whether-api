@@ -2,16 +2,13 @@ from src.modules.WhetherAlgorithm import WhetherAlgorithm
 from src.modules.WeatherApiHelper import WeatherApiHelper
 import src.constants as c
 
+
 def whether_handler(params):
     # Instantiate the algorithm class
     whether_algorithm = WhetherAlgorithm()
 
     # Get directions from url params
     directions_result = whether_algorithm.get_directions(params)
-
-    # # Extract polyline
-    # polyline = directions_result[0]['overview_polyline']['points']
-    # print(polyline)
 
     # Extract each polyline from each leg of the directions
     # Decode each one of these polylines to produce the points
