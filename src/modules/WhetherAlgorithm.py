@@ -128,8 +128,8 @@ class WhetherAlgorithm:
                              math.sin(lat1) * math.cos(lat2) *
                              math.cos(d_lon))
 
-        # Earth's radius
-        ang_dist = distance / 6371000.0
+        # Earth's radius in miles
+        ang_dist = distance / 3959
 
         # Calculate the destination point, given the source and bearing
         lat2 = math.asin(math.sin(lat1) * math.cos(ang_dist) +
