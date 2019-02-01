@@ -1,6 +1,7 @@
-import googlemaps
-from datetime import datetime
 import math
+from datetime import datetime
+import googlemaps
+import numpy as np
 from src.modules.GoogleClient import GoogleClient
 
 
@@ -32,28 +33,91 @@ class WhetherAlgorithm:
 
         return all_points
 
-    def get_equidistant_markers_from_polyline_points(self, points):
-        # Get markers
-        next_marker_at = 0
-        markers = []
-        while True:
-            next_point = self.iterative_move_along_path(points, next_marker_at)
+    def get_equidistant_markers_from_polyline_points(self, points, distance):
+        """
+        Given set of points, returns set of points that are evenly spaced along
+        said points
 
-            if next_point is not None:
-                markers.append({'lat': next_point[0], 'lng': next_point[1]})
-                next_marker_at += 80000  # About 50 miles
-            else:
-                break
-        print(markers)
-        return markers
+        :param points: list of dict coords of lat/long
+        :param distance: distance between points, in km
+        :return: list of dict of coords lat/long
+        """
+        # from dict to array
+        points = np.array([list(d.values()) for d in points])
+
+        # array of sequential points
+        sequ_points = np.empty((len(points) - 1, 4))
+
+        sequ_points[:, :2] = points[:-1]
+        sequ_points[:, 2:] = points[1:]
+
+        # distances between points, and remainders
+        distances = np.apply_along_axis(WhetherAlgorithm.haversine, 1, sequ_points)
+        mods = (distances.cumsum() % distance)
+
+        # get steps: start at distance, with step of distance until end
+        steps = np.arange(distance, distances.sum(), distance)
+
+        # locations where steps insert
+        inserts = np.searchsorted(distances.cumsum(), steps) - 1
+
+        # look for duplicates
+        uns, idxs, cnts = np.unique(inserts, return_index=True, return_counts=True)
+
+        # append remainders to tweeners in order to np apply
+        tweeners = sequ_points[uns + 1]
+        remainders = (distance - mods[uns])
+
+        # look for and process duplicates
+        m_dup = (cnts > 1).nonzero()[0]
+
+        # TODO: the points generated here don't look optimal, figure it out
+        # however with the detailed polylines it rarely gets called unless distance is very small
+        if len(m_dup) > 0:
+            dups, count = uns[m_dup], cnts[m_dup]-1
+
+            dups = np.repeat(dups, count)
+            ins = np.repeat(idxs[m_dup]+1, count)
+
+            ar1 = lambda x: np.arange(start=1, stop=x+1)
+            count = np.concatenate(np.array(list(map(ar1, count))))
+
+            more_tweeners = sequ_points[dups + 1]
+            more_remainders = ((distance * count) + mods[dups])
+
+            # combine
+            tweeners = np.vstack((tweeners, more_tweeners))
+            remainders = np.hstack((remainders, more_remainders))
+
+        merged = np.concatenate((tweeners, remainders[:, np.newaxis]), axis=1)
+
+        # points
+        even_points = np.apply_along_axis(WhetherAlgorithm.move_towards, 1, merged)
+
+        # back into dict
+        dict_even_points = [{'lat': lat, 'lng': lng} for lat, lng in even_points]
+
+        # add first and last points
+        dict_even_points += [{'lat': lat, 'lng': lng} for lat, lng in [points[0], points[-1]]]
+
+        return dict_even_points
 
     @staticmethod
-    def move_towards(point1, point2, distance):
+    def move_towards(coords_dist):
+        """
+        Moves along a line segment by the specified distance
+
+        :param coords_dist: iterable of [lat1, lon1, lat2, lon2, distance]
+        :return: new coordinate
+        """
+        # expand
+        lat1, lon1, lat2, lon2, distance = coords_dist
+
         # Convert degrees to radians
-        lat1 = math.radians(point1[0])
-        lon1 = math.radians(point1[1])
-        lat2 = math.radians(point2[0])
-        d_lon = math.radians(point2[1] - point1[1])
+        d_lon = math.radians(lon2 - lon1)
+        lat1 = math.radians(lat1)
+        lon1 = math.radians(lon1)
+        lat2 = math.radians(lat2)
 
         # Find the bearing from point1 to point2
         bearing = math.atan2(math.sin(d_lon) * math.cos(lat2),
@@ -61,13 +125,14 @@ class WhetherAlgorithm:
                              math.sin(lat1) * math.cos(lat2) *
                              math.cos(d_lon))
 
-        # Earth's radius
-        ang_dist = distance / 6371000.0
+        # Earth's radius in miles
+        ang_dist = distance / 3959
 
         # Calculate the destination point, given the source and bearing
         lat2 = math.asin(math.sin(lat1) * math.cos(ang_dist) +
                          math.cos(lat1) * math.sin(ang_dist) *
                          math.cos(bearing))
+
         lon2 = lon1 + math.atan2(math.sin(bearing) * math.sin(ang_dist) *
                                  math.cos(lat1),
                                  math.cos(ang_dist) - math.sin(lat1) *
@@ -76,54 +141,60 @@ class WhetherAlgorithm:
         if math.isnan(lat2) or math.isnan(lon2):
             return None
 
-        return [math.degrees(lat2), math.degrees(lon2)]
+        return np.array([math.degrees(lat2), math.degrees(lon2)])
 
-    def iterative_move_along_path(self, points, distance, index=0):
-        while index < len(points) - 1:
-            # There is still at least one point further from this point
-            # Turn points into tuples for geopy format
-            # point1_tuple = (points[index]['latitude'], points[index]['longitude'])
-            # point2_tuple = (points[index + 1]['latitude'], points[index + 1]['longitude'])
-            point1_tuple = (points[index]['lat'], points[index]['lng'])
-            point2_tuple = (points[index + 1]['lat'], points[index + 1]['lng'])
-
-            # Use geodesic method to get distance between points in meters
-            distance_to_next_point = self.haversine(point1_tuple, point2_tuple)
-
-            if distance <= distance_to_next_point:
-                # Distance_to_next_point is within this point and the next
-                # Return the destination point with moveTowards()
-                return self.move_towards(point1_tuple, point2_tuple, distance)
-
-            else:
-                # The destination is further from the next point
-                # Subtract distance_to_next_point from distance and continue recursively
-                distance -= distance_to_next_point
-                index += 1
-
-        # There are no further points, the distance exceeds the length of the full path.
-        # Return None
-        return None
+    # def iterative_move_along_path(self, points, distance, index=0):
+    #     while index < len(points) - 1:
+    #         # There is still at least one point further from this point
+    #         # Turn points into tuples for geopy format
+    #         # point1_tuple = (points[index]['latitude'], points[index]['longitude'])
+    #         # point2_tuple = (points[index + 1]['latitude'], points[index + 1]['longitude'])
+    #         point1_tuple = (points[index]['lat'], points[index]['lng'])
+    #         point2_tuple = (points[index + 1]['lat'], points[index + 1]['lng'])
+    #
+    #         # Use geodesic method to get distance between points in meters
+    #         distance_to_next_point = self.haversine(point1_tuple, point2_tuple)
+    #
+    #         if distance <= distance_to_next_point:
+    #             # Distance_to_next_point is within this point and the next
+    #             # Return the destination point with moveTowards()
+    #             return self.move_towards(point1_tuple, point2_tuple, distance)
+    #
+    #         else:
+    #             # The destination is further from the next point
+    #             # Subtract distance_to_next_point from distance and continue recursively
+    #             distance -= distance_to_next_point
+    #             index += 1
+    #
+    #     # There are no further points, the distance exceeds the length of the full path.
+    #     # Return None
+    #     return None
 
 
     @staticmethod
-    def haversine(point1_tuple, point2_tuple):
+    def haversine(coords):
         """
         Calculate the great circle distance between two points
         on the earth (specified in decimal degrees)
+
+        :param coords: iterable of [lat1, lon1, lat2, lon2]
+        :return: distance in miles
         """
-        lat1, lon1 = point1_tuple
-        lat2, lon2 = point2_tuple
+        lat1, lon1, lat2, lon2 = coords
+
         # convert decimal degrees to radians
         lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+
         # haversine formula
         dlon = lon2 - lon1
         dlat = lat2 - lat1
         a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
         c = 2 * math.asin(math.sqrt(a))
-        # Radius of earth in kilometers is 6371
-        m = 6371000 * c
-        return m
+
+        # Radius of earth in kilometers is 3,959 miles
+        miles = 3959 * c
+
+        return miles
 
     # def move_along_path(self, points, distance, index=0):
     #     if index < len(points) - 1:
