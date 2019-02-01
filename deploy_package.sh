@@ -3,7 +3,7 @@
 lambda_function=whether_api
 
 # Remove old deployment package data
-rm -r ./deploy/tmp
+rm -r ./deploy
 mkdir ./deploy ./deploy/tmp
 
 cd deploy/
