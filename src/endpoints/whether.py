@@ -1,5 +1,4 @@
 from src.modules.WhetherAlgorithm import WhetherAlgorithm
-from src.modules.WeatherApiHelper import WeatherApiHelper
 import src.constants as c
 
 
@@ -19,15 +18,15 @@ def whether_handler(params):
 
     # Use the GoogleMaps Waypoints API to get the times at arrived at each marker
     # As well as a new set of "directions results" to supply the user
-    waypoints_results, equidistant_markers_markers_with_time = whether_algorithm.get_waypoint_directions(params, equidistant_markers)
+    waypoints_results = whether_algorithm.get_waypoint_directions(params, equidistant_markers)
 
     # Get the weather data at each marker
-    equidistant_markers_with_weather = WeatherApiHelper().get_weather_at_markers(equidistant_markers)
+    whether_algorithm.get_weather_at_markers(equidistant_markers)
 
     # Format Whether result
     result = {
         'directions': waypoints_results[0],
-        'equidistant_markers': equidistant_markers_with_weather
+        'equidistant_markers': equidistant_markers
     }
     return result
 
