@@ -3,7 +3,6 @@ import asyncio
 import aiohttp
 from dateutil.parser import parse
 
-
 class WeatherApiHelper:
 
     def __init__(self):
@@ -36,8 +35,8 @@ class WeatherApiHelper:
 
         markers = []
         for response in res:
-            weather_response = response.result()[0]
-            marker = response.result()[1]
+            weather_response, marker = response.result()
+            # marker = response.result()[1]
             utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
             for period in weather_response['properties']['periods']:

@@ -1,7 +1,11 @@
 import math
-from datetime import datetime
+import datetime
 import googlemaps
 import numpy as np
+from dateutil.parser import parse
+from pytz import timezone
+import src.constants as c
+from src.modules.AsyncHelper import AsyncHelper
 from src.modules.GoogleClient import GoogleClient
 
 
@@ -10,7 +14,7 @@ class WhetherAlgorithm:
         self.googlemaps_client = GoogleClient().client
 
     def get_directions(self, params, waypoints=None, origin=None):
-        now = datetime.now()
+        now = datetime.datetime.now()
         if waypoints is not None:
             result = self.googlemaps_client.directions(origin, params['destination'], mode='driving',
                                                        departure_time=now, waypoints=waypoints,
@@ -98,7 +102,9 @@ class WhetherAlgorithm:
         dict_even_points = [{'lat': lat, 'lng': lng} for lat, lng in even_points]
 
         # add first and last points
-        dict_even_points += [{'lat': lat, 'lng': lng} for lat, lng in [points[0], points[-1]]]
+        # TODO - Fix how these are being added
+        dict_even_points.insert(len(dict_even_points), {'lat': points[-1][0], 'lng': points[-1][1]})
+        dict_even_points.insert(0, {'lat': points[0][0], 'lng': points[0][1]})
 
         return dict_even_points
 
@@ -168,19 +174,73 @@ class WhetherAlgorithm:
 
         return miles
 
+    @staticmethod
+    def create_waypoint_string(waypoints):
+        waypoints_joined = []
+        for waypoint in waypoints:
+            waypoints_joined.append(str(waypoint['lat']) + ',' + str(waypoint['lng']))
+
+        return waypoints_joined
+
+    def create_waypoint_urls(self, chunks):
+        waypoint_urls = []
+        for chunk in chunks:
+            waypoints = chunk.copy()
+            origin = waypoints.pop(0)
+            destination = waypoints.pop(-1)
+            joined_waypoints = '|'.join(self.create_waypoint_string(waypoints))
+            url = c.directions_api_base_url.format(origin=str(origin['lat']) + ',' + str(origin['lng']), destination=str(destination['lat']) + ',' + str(destination['lng']), waypoints=joined_waypoints, api_key=c.api_key)
+            waypoint_urls.append((url, (origin, destination)))
+
+        return waypoint_urls
+
+    # TODO - Alex need to return them in order
+    def split_up_waypoints(self, equidistant_markers):
+        chunks = []
+        i = 1
+        while True:
+            markers_until_end = len(equidistant_markers) - i
+            if markers_until_end >= c.max_waypoints:
+                chunks.append(equidistant_markers[i-1:i+c.max_waypoints])
+            else:
+                chunks.append(equidistant_markers[i-1:len(equidistant_markers)])
+                break
+            i += c.max_waypoints
+
+        return chunks
+
+    # TODO - Make this just handle the async responses and assign arrival times
     def get_waypoint_directions(self, params, equidistant_markers):
         # Set the origin of the directions as the first waypoint so it doesn't calculate a leg of 1 minute
         # Remove that marker so it's not repeated
-        origin = equidistant_markers.pop(0)
+        # origin = equidistant_markers.pop(0)
+        #
+        # # Get google directions using the markers as waypoints
+        # waypoints_result = self.get_directions(params=params, origin=origin, waypoints=equidistant_markers)
+        #
+        # # Geocode destination address and extract lat/long and add it to the markers
+        # equidistant_markers.append(self.googlemaps_client.geocode(params['destination'])[0]['geometry']['location'])
+        #
+        # # Re-add the origin to the markers
+        # equidistant_markers.insert(0, origin)
 
-        # Get google directions using the markers as waypoints
-        waypoints_result = self.get_directions(params=params, origin=origin, waypoints=equidistant_markers)
+        chunks = self.split_up_waypoints(equidistant_markers)
+        waypoint_urls = self.create_waypoint_urls(chunks)
+        async_session = AsyncHelper(waypoint_urls, None)
+        results = async_session.async_all()
+        # TODO - Order the results returns from async
+        # TODO - Maybe pass an index along with the chunks?
+        # TODO - OR Just keep track of which marker is which chunk (marker might already be in the async results)
 
-        # Geocode destination address and extract lat/long and add it to the markers
-        equidistant_markers.append(self.googlemaps_client.geocode(params['destination'])[0]['geometry']['location'])
-
-        # Re-add the origin to the markers
-        equidistant_markers.insert(0, origin)
+        # Get the results in order, and then append the legs to one big list
+        leg_list = []
+        for chunk in chunks:
+            for result in results:
+                x = result.result()
+                if result.result()[1][0] == chunk[0]:
+                    # Then this is the result corresponding to the chunk
+                    leg_list += (result.result()[0]['routes'][0]['legs'])
+                    # results.remove(result)
 
         # Initialize total travel minutes
         total_mins = 0
@@ -191,7 +251,7 @@ class WhetherAlgorithm:
         i = 1  # Index starts at 1 because the first marker has default arrival time of 0 mins
 
         # Iterate over legs (each waypoint-waypoint is a leg)
-        for leg in waypoints_result[0]['legs']:
+        for leg in leg_list:
             # Convert leg duration from seconds to minutes
             total_mins += (leg['duration']['value'] / 60)
 
@@ -199,4 +259,35 @@ class WhetherAlgorithm:
             equidistant_markers[i]['arrival_time'] = total_mins
             i += 1
 
-        return waypoints_result, equidistant_markers
+        return equidistant_markers
+
+    @staticmethod
+    def create_weather_api_urls(markers):
+        url_marker_list = []
+        for marker in markers:
+            url_marker_tuple = (c.weather_api_base_url.format(lat=marker['lat'], lng=marker['lng']), marker)
+            url_marker_list.append(url_marker_tuple)
+        return url_marker_list
+
+    def get_weather_at_markers(self, markers):
+        now = datetime.datetime.now(timezone('US/Eastern'))
+        url_marker_list = self.create_weather_api_urls(markers)
+        async_session = AsyncHelper(url_marker_list, c.weather_api_base_headers)
+        result = async_session.async_all()
+        markers = []
+        for response in result:
+            weather_response = response.result()[0]
+            marker = response.result()[1]
+            utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
+
+            for period in weather_response['properties']['periods']:
+                period_start_time = parse(period['startTime']).replace(tzinfo=timezone('UTC'))
+                period_end_time = parse(period['endTime']).replace(tzinfo=timezone('UTC'))
+
+                # If the utc time at the marker is within the period, add the weather data to the marker
+                if period_start_time <= utc_time_from_now < period_end_time:
+                    marker['weather_data'] = period
+                    markers.append(marker)
+                    # Jump to next marker
+                    break
+
