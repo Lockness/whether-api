@@ -44,6 +44,8 @@ class WhetherAlgorithm:
         Given set of points, returns set of points that are evenly spaced along
         said points.
 
+        Drops last point if close enough to destination.
+
         Order is guaranteed unless if statement is entered. TODO: fix that.
 
         Essentially, builds array of distances between points, and uses a binary search to determine
@@ -71,6 +73,15 @@ class WhetherAlgorithm:
 
         # locations where steps insert
         inserts = np.searchsorted(distances.cumsum(), steps) - 1
+
+        # check distance between last insert and destination
+        # ignores remainder, so it's an approximation
+        distance_bewteen_last = distances[inserts[-1] + 1:].sum()
+
+        # if small enough distance, drop last step and redo
+        if distance_bewteen_last < distance / 2:
+            steps = steps[:-1]
+            inserts = np.searchsorted(distances.cumsum(), steps) - 1
 
         # look for duplicates
         uns, idxs, cnts = np.unique(inserts, return_index=True, return_counts=True)
