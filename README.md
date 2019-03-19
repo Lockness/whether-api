@@ -1,11 +1,19 @@
 # Whether
 
-To deploy to lambda:
+## Getting started
+```
+$ pip install -r requirements.txt
+$ python router.py
+```
+
+## Deploying to Lambda:
 ```
 $ . ./deploy_package.sh
 ```
 
+## Authors:
+[Ryan Tomlinson](https://github.com/ryantomlinson95)
 
-Authors:
-- Ryan Tomlinson
-- Justin Carruthers
+[Justin Carruthers](https://github.com/Jtcruthers)
+
+[Alexander Tomlinson](https://github.com/awctomlinson)
