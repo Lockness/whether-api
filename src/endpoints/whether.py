@@ -18,15 +18,15 @@ def whether_handler(params):
 
     # Use the GoogleMaps Waypoints API to get the times at arrived at each marker
     # As well as a new set of "directions results" to supply the user
-    waypoints_results = whether_algorithm.get_waypoint_directions(params, equidistant_markers)
+    waypoints_results = whether_algorithm.get_waypoint_directions(equidistant_markers)
 
     # Get the weather data at each marker
     whether_algorithm.get_weather_at_markers(equidistant_markers)
 
     # Format Whether result
     result = {
-        'directions': waypoints_results[0],
-        'equidistant_markers': equidistant_markers
+        'polyline': directions_result[0]['overview_polyline']['points'],
+        'equidistant_markers': waypoints_results
     }
     return result
 
