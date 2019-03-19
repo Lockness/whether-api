@@ -210,7 +210,7 @@ class WhetherAlgorithm:
         return chunks
 
     # TODO - Make this just handle the async responses and assign arrival times
-    def get_waypoint_directions(self, params, equidistant_markers):
+    def get_waypoint_directions(self, equidistant_markers):
         # Set the origin of the directions as the first waypoint so it doesn't calculate a leg of 1 minute
         # Remove that marker so it's not repeated
         # origin = equidistant_markers.pop(0)
@@ -236,7 +236,6 @@ class WhetherAlgorithm:
         leg_list = []
         for chunk in chunks:
             for result in results:
-                x = result.result()
                 if result.result()[1][0] == chunk[0]:
                     # Then this is the result corresponding to the chunk
                     leg_list += (result.result()[0]['routes'][0]['legs'])
@@ -246,7 +245,9 @@ class WhetherAlgorithm:
         total_mins = 0
 
         # Set arrival time of first marker to 0 minutes
+        # Set address of first marker to the first waypoint's start address
         equidistant_markers[0]['arrival_time'] = 0
+        equidistant_markers[0]['address'] = leg_list[0]['start_address']
 
         i = 1  # Index starts at 1 because the first marker has default arrival time of 0 mins
 
@@ -255,8 +256,11 @@ class WhetherAlgorithm:
             # Convert leg duration from seconds to minutes
             total_mins += (leg['duration']['value'] / 60)
 
-            # Set the arrival time to the total_mins
+            # Set the arrival time of the next marker to the total_mins using arrival time of current waypoint
             equidistant_markers[i]['arrival_time'] = total_mins
+
+            # Set the address of the next marker as the end_address of the current waypoint
+            equidistant_markers[i]['address'] = leg['end_address']
             i += 1
 
         return equidistant_markers
