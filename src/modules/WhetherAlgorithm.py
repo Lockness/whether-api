@@ -1,9 +1,11 @@
-import math
 import datetime
+import math
+
 import googlemaps
 import numpy as np
 from dateutil.parser import parse
 from pytz import timezone
+
 import src.constants as c
 from src.modules.AsyncHelper import AsyncHelper
 from src.modules.GoogleClient import GoogleClient
@@ -40,7 +42,15 @@ class WhetherAlgorithm:
     def get_equidistant_markers_from_polyline_points(self, points, distance):
         """
         Given set of points, returns set of points that are evenly spaced along
-        said points
+        said points.
+
+        Drops last point if close enough to destination.
+
+        Order is guaranteed unless if statement is entered. TODO: fix that.
+
+        Essentially, builds array of distances between points, and uses a binary search to determine
+        where to insert along the array (numpy.searchsorted). Then uses remainder to determine how far
+        along a polyline to travel for each evenly spaced point.
 
         :param points: list of dict coords of lat/long
         :param distance: distance between points, in km
@@ -49,13 +59,12 @@ class WhetherAlgorithm:
         # from dict to array
         points = np.array([list(d.values()) for d in points])
 
-        # array of sequential points
+        # build array of sequential points
         sequ_points = np.empty((len(points) - 1, 4))
-
         sequ_points[:, :2] = points[:-1]
         sequ_points[:, 2:] = points[1:]
 
-        # distances between points, and remainders
+        # calculate distances between points, and figure out remainders
         distances = np.apply_along_axis(WhetherAlgorithm.haversine, 1, sequ_points)
         mods = (distances.cumsum() % distance)
 
@@ -64,6 +73,15 @@ class WhetherAlgorithm:
 
         # locations where steps insert
         inserts = np.searchsorted(distances.cumsum(), steps) - 1
+
+        # check distance between last insert and destination
+        # ignores remainder, so it's an approximation
+        distance_bewteen_last = distances[inserts[-1] + 1:].sum()
+
+        # if small enough distance, drop last step and redo
+        if distance_bewteen_last < distance / 2:
+            steps = steps[:-1]
+            inserts = np.searchsorted(distances.cumsum(), steps) - 1
 
         # look for duplicates
         uns, idxs, cnts = np.unique(inserts, return_index=True, return_counts=True)
@@ -76,7 +94,7 @@ class WhetherAlgorithm:
         m_dup = (cnts > 1).nonzero()[0]
 
         # TODO: the points generated here don't look optimal, figure it out
-        # however with the detailed polylines it rarely gets called unless distance is very small
+        # only called if len of polyline is greater than requested distance between points
         if len(m_dup) > 0:
             dups, count = uns[m_dup], cnts[m_dup]-1
 
@@ -99,14 +117,14 @@ class WhetherAlgorithm:
         even_points = np.apply_along_axis(WhetherAlgorithm.move_towards, 1, merged)
 
         # back into dict
-        dict_even_points = [{'lat': lat, 'lng': lng} for lat, lng in even_points]
+        list_dict_even_points = [{'lat': lat, 'lng': lng} for lat, lng in even_points]
 
         # add first and last points
-        # TODO - Fix how these are being added
-        dict_even_points.insert(len(dict_even_points), {'lat': points[-1][0], 'lng': points[-1][1]})
-        dict_even_points.insert(0, {'lat': points[0][0], 'lng': points[0][1]})
+        list_dict_even_points = [{'lat': points[0][0], 'lng': points[0][1]}] + \
+                                list_dict_even_points + \
+                                [{'lat': points[-1][0], 'lng': points[-1][1]}]
 
-        return dict_even_points
+        return list_dict_even_points
 
     @staticmethod
     def move_towards(coords_dist):
