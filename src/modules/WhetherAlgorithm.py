@@ -254,8 +254,16 @@ class WhetherAlgorithm:
 
         return waypoint_urls
 
-    # TODO - Alex need to return them in order
     def split_up_waypoints(self, equidistant_markers):
+        """
+        Splits waypoints up into chunks
+
+        TODO: Alex - need to return them in order
+
+        :param equidistant_markers:
+
+        :return: list of waypoint chunks
+        """
         chunks = []
         i = 1
         while True:
