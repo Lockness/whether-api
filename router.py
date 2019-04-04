@@ -1,6 +1,7 @@
 import json
-from src.endpoints import whether
+
 import src.constants
+from src.endpoints import whether
 
 
 def route(event, context):
