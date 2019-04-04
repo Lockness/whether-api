@@ -335,10 +335,19 @@ class WhetherAlgorithm:
 
     @staticmethod
     def create_weather_api_urls(markers):
+        """
+        Takes list of markers and generates urls
+
+        :param markers: TODO
+
+        :return: list of url markers
+        """
         url_marker_list = []
+
         for marker in markers:
             url_marker_tuple = (c.weather_api_base_url.format(lat=marker['lat'], lng=marker['lng']), marker)
             url_marker_list.append(url_marker_tuple)
+
         return url_marker_list
 
     def get_weather_at_markers(self, markers):
