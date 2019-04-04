@@ -218,9 +218,14 @@ class WhetherAlgorithm:
 
     @staticmethod
     def create_waypoint_string(waypoints):
-        waypoints_joined = []
-        for waypoint in waypoints:
-            waypoints_joined.append(str(waypoint['lat']) + ',' + str(waypoint['lng']))
+        """
+        Takes list of waypoints and returns list of waypoints strings
+
+        :param waypoints: points to alter route
+
+        :return: list of waypoint strings
+        """
+        waypoints_joined = [f'{waypoint["lat"]},{waypoint["lng"]}' for waypoint in waypoints]
 
         return waypoints_joined
 
