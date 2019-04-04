@@ -230,13 +230,26 @@ class WhetherAlgorithm:
         return waypoints_joined
 
     def create_waypoint_urls(self, chunks):
+        """
+        Creates list of waypoint urls from chunks
+
+        :param chunks: TODO
+
+        :return: list of waypoint urls
+        """
         waypoint_urls = []
+
         for chunk in chunks:
             waypoints = chunk.copy()
             origin = waypoints.pop(0)
             destination = waypoints.pop(-1)
             joined_waypoints = '|'.join(self.create_waypoint_string(waypoints))
-            url = c.directions_api_base_url.format(origin=str(origin['lat']) + ',' + str(origin['lng']), destination=str(destination['lat']) + ',' + str(destination['lng']), waypoints=joined_waypoints, api_key=c.api_key)
+
+            url = c.directions_api_base_url.format(origin=f'{origin["lat"]},{origin["lng"]}',
+                                                   destination=f'{destination["lat"]},{destination["lng"]}',
+                                                   waypoints=joined_waypoints,
+                                                   api_key=c.api_key)
+
             waypoint_urls.append((url, (origin, destination)))
 
         return waypoint_urls
