@@ -42,11 +42,21 @@ class WhetherAlgorithm:
 
     @staticmethod
     def extract_polylines(directions_result):
+        """
+        Takes polyline points and converts to list of lat/lng dicts
+
+        :param directions_result: TODO
+
+        :return: list of dicts with lat/lng keys
+        """
         all_points = []
+
         for step in directions_result[0]['legs'][0]['steps']:
             polyline_points = step['polyline']['points']
             decoded_points = googlemaps.convert.decode_polyline(polyline_points)
-            if len(all_points) == 0:
+
+            # need to keep first point if start of list, otherwise first point is a duplicate
+            if not all_points:
                 all_points = decoded_points
             else:
                 all_points.extend(decoded_points[1:])
