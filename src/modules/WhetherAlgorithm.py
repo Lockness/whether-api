@@ -16,14 +16,28 @@ class WhetherAlgorithm:
         self.googlemaps_client = GoogleClient().client
 
     def get_directions(self, params, waypoints=None, origin=None):
-        now = datetime.datetime.now()
+        """
+        Queries the googlemaps api for directions between an origin and destination.
+
+        :param params: TODO
+        :param waypoints: points to alter route
+        :param origin: starting point of direction
+
+        :return: list of routes
+        """
+        optimize_waypoints = True
         if waypoints is not None:
-            result = self.googlemaps_client.directions(origin, params['destination'], mode='driving',
-                                                       departure_time=now, waypoints=waypoints,
-                                                       optimize_waypoints=True)
-        else:
-            result = self.googlemaps_client.directions(params['origin'], params['destination'], mode='driving',
-                                                       departure_time=now)
+            optimize_waypoints = False
+
+        if origin is None:
+            origin = params['origin']
+
+        result = self.googlemaps_client.directions(origin,
+                                                   params['destination'],
+                                                   mode='driving',
+                                                   departure_time=datetime.datetime.now(),
+                                                   waypoints=waypoints,
+                                                   optimize_waypoints=optimize_waypoints)
         return result
 
     @staticmethod
