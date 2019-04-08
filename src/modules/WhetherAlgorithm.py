@@ -1,5 +1,6 @@
 import datetime
 import math
+import copy
 
 import googlemaps
 import numpy as np
@@ -298,8 +299,7 @@ class WhetherAlgorithm:
         result = async_session.async_all()
         markers = []
         for response in result:
-            weather_response = response.result()[0]
-            marker = response.result()[1]
+            weather_response, marker = response.result()
             utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
             for period in weather_response['properties']['periods']:
@@ -312,4 +312,3 @@ class WhetherAlgorithm:
                     markers.append(marker)
                     # Jump to next marker
                     break
-
