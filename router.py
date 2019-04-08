@@ -4,6 +4,7 @@ import src.constants
 
 
 def route(event, context):
+    print(event)
     # Get params
     params = event['queryStringParameters']
 
