@@ -1,5 +1,5 @@
-from src.modules.WhetherAlgorithm import WhetherAlgorithm
 import src.constants as c
+from src.modules.WhetherAlgorithm import WhetherAlgorithm
 
 
 def whether_handler(params):

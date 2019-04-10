@@ -1,7 +1,9 @@
-import datetime
 import asyncio
+import datetime
+
 import aiohttp
 from dateutil.parser import parse
+
 
 class WeatherApiHelper:
 
