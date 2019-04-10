@@ -17,23 +17,47 @@ class WhetherAlgorithm:
         self.googlemaps_client = GoogleClient().client
 
     def get_directions(self, params, waypoints=None, origin=None):
-        now = datetime.datetime.now()
+        """
+        Queries the googlemaps api for directions between an origin and destination.
+
+        :param params: TODO
+        :param waypoints: points to alter route
+        :param origin: starting point of direction
+
+        :return: list of routes
+        """
+        optimize_waypoints = True
         if waypoints is not None:
-            result = self.googlemaps_client.directions(origin, params['destination'], mode='driving',
-                                                       departure_time=now, waypoints=waypoints,
-                                                       optimize_waypoints=True)
-        else:
-            result = self.googlemaps_client.directions(params['origin'], params['destination'], mode='driving',
-                                                       departure_time=now)
+            optimize_waypoints = False
+
+        if origin is None:
+            origin = params['origin']
+
+        result = self.googlemaps_client.directions(origin,
+                                                   params['destination'],
+                                                   mode='driving',
+                                                   departure_time=datetime.datetime.now(),
+                                                   waypoints=waypoints,
+                                                   optimize_waypoints=optimize_waypoints)
         return result
 
     @staticmethod
     def extract_polylines(directions_result):
+        """
+        Takes polyline points and converts to list of lat/lng dicts
+
+        :param directions_result: TODO
+
+        :return: list of dicts with lat/lng keys
+        """
         all_points = []
+
         for step in directions_result[0]['legs'][0]['steps']:
             polyline_points = step['polyline']['points']
             decoded_points = googlemaps.convert.decode_polyline(polyline_points)
-            if len(all_points) == 0:
+
+            # need to keep first point if start of list, otherwise first point is a duplicate
+            if not all_points:
                 all_points = decoded_points
             else:
                 all_points.extend(decoded_points[1:])
@@ -195,26 +219,52 @@ class WhetherAlgorithm:
 
     @staticmethod
     def create_waypoint_string(waypoints):
-        waypoints_joined = []
-        for waypoint in waypoints:
-            waypoints_joined.append(str(waypoint['lat']) + ',' + str(waypoint['lng']))
+        """
+        Takes list of waypoints and returns list of waypoints strings
+
+        :param waypoints: points to alter route
+
+        :return: list of waypoint strings
+        """
+        waypoints_joined = [f'{waypoint["lat"]},{waypoint["lng"]}' for waypoint in waypoints]
 
         return waypoints_joined
 
     def create_waypoint_urls(self, chunks):
+        """
+        Creates list of waypoint urls from chunks
+
+        :param chunks: TODO
+
+        :return: list of waypoint urls
+        """
         waypoint_urls = []
+
         for chunk in chunks:
             waypoints = chunk.copy()
             origin = waypoints.pop(0)
             destination = waypoints.pop(-1)
             joined_waypoints = '|'.join(self.create_waypoint_string(waypoints))
-            url = c.directions_api_base_url.format(origin=str(origin['lat']) + ',' + str(origin['lng']), destination=str(destination['lat']) + ',' + str(destination['lng']), waypoints=joined_waypoints, api_key=c.api_key)
+
+            url = c.directions_api_base_url.format(origin=f'{origin["lat"]},{origin["lng"]}',
+                                                   destination=f'{destination["lat"]},{destination["lng"]}',
+                                                   waypoints=joined_waypoints,
+                                                   api_key=c.api_key)
+
             waypoint_urls.append((url, (origin, destination)))
 
         return waypoint_urls
 
-    # TODO - Alex need to return them in order
     def split_up_waypoints(self, equidistant_markers):
+        """
+        Splits waypoints up into chunks
+
+        TODO: Alex - need to return them in order
+
+        :param equidistant_markers:
+
+        :return: list of waypoint chunks
+        """
         chunks = []
         i = 1
         while True:
@@ -286,13 +336,29 @@ class WhetherAlgorithm:
 
     @staticmethod
     def create_weather_api_urls(markers):
+        """
+        Takes list of markers and generates urls
+
+        :param markers: TODO
+
+        :return: list of url markers
+        """
         url_marker_list = []
+
         for marker in markers:
             url_marker_tuple = (c.weather_api_base_url.format(lat=marker['lat'], lng=marker['lng']), marker)
             url_marker_list.append(url_marker_tuple)
+
         return url_marker_list
 
     def get_weather_at_markers(self, markers):
+        """
+        Gets the weather at each marker
+
+        :param markers: weather locations
+
+        :return: list of weather data at each location
+        """
         now = datetime.datetime.now(timezone('US/Eastern'))
         url_marker_list = self.create_weather_api_urls(markers)
         async_session = AsyncHelper(url_marker_list, c.weather_api_base_headers)
