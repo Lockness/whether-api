@@ -5,6 +5,7 @@ from src.endpoints import whether
 
 
 def route(event, context):
+    print(event)
     # Get params
     params = event['queryStringParameters']
 

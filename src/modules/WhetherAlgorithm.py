@@ -1,5 +1,6 @@
 import datetime
 import math
+import copy
 
 import googlemaps
 import numpy as np
@@ -361,14 +362,10 @@ class WhetherAlgorithm:
         now = datetime.datetime.now(timezone('US/Eastern'))
         url_marker_list = self.create_weather_api_urls(markers)
         async_session = AsyncHelper(url_marker_list, c.weather_api_base_headers)
-
-        response_results = [response.result() for response in async_session.async_all()]
-
+        result = async_session.async_all()
         markers = []
-
-        for result in response_results:
-            weather_response = result[0]
-            marker = result[1]
+        for response in result:
+            weather_response, marker = response.result()
             utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
             for period in weather_response['properties']['periods']:
@@ -379,5 +376,5 @@ class WhetherAlgorithm:
                 if period_start_time <= utc_time_from_now < period_end_time:
                     marker['weather_data'] = period
                     markers.append(marker)
-                    # Jump to next marker (break out of inner for)
+                    # Jump to next marker
                     break
