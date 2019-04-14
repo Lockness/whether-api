@@ -359,7 +359,7 @@ class WhetherAlgorithm:
 
         :return: list of weather data at each location
         """
-        now = datetime.datetime.now(timezone('US/Eastern'))
+        now = datetime.datetime.now(timezone('UTC'))
         url_marker_list = self.create_weather_api_urls(markers)
         async_session = AsyncHelper(url_marker_list, c.weather_api_base_headers)
         result = async_session.async_all()
@@ -369,8 +369,8 @@ class WhetherAlgorithm:
             utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
             for period in weather_response['properties']['periods']:
-                period_start_time = parse(period['startTime']).replace(tzinfo=timezone('UTC'))
-                period_end_time = parse(period['endTime']).replace(tzinfo=timezone('UTC'))
+                period_start_time = parse(period['startTime'])
+                period_end_time = parse(period['endTime'])
 
                 # If the utc time at the marker is within the period, add the weather data to the marker
                 if period_start_time <= utc_time_from_now < period_end_time:
