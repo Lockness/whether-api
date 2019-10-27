@@ -16,13 +16,12 @@ class WhetherAlgorithm:
     def __init__(self):
         self.googlemaps_client = GoogleClient().client
 
-    def get_directions(self, params, waypoints=None, origin=None):
+    def get_directions(self, params, waypoints=None):
         """
         Queries the googlemaps api for directions between an origin and destination.
 
         :param params: TODO
         :param waypoints: points to alter route
-        :param origin: starting point of direction
 
         :return: list of routes
         """
@@ -30,10 +29,7 @@ class WhetherAlgorithm:
         if waypoints is not None:
             optimize_waypoints = False
 
-        if origin is None:
-            origin = params['origin']
-
-        result = self.googlemaps_client.directions(origin,
+        result = self.googlemaps_client.directions(params['origin'],
                                                    params['destination'],
                                                    mode='driving',
                                                    departure_time=datetime.datetime.now(),
@@ -344,7 +340,6 @@ class WhetherAlgorithm:
         :return: list of url markers
         """
         url_marker_list = []
-
         for marker in markers:
             url_marker_tuple = (c.weather_api_base_url.format(lat=marker['lat'], lng=marker['lng']), marker)
             url_marker_list.append(url_marker_tuple)
@@ -364,8 +359,11 @@ class WhetherAlgorithm:
         async_session = AsyncHelper(url_marker_list, c.weather_api_base_headers)
         result = async_session.async_all()
         markers = []
+
         for response in result:
             weather_response, marker = response.result()
+            print("WEATHER RESPONSE: ", weather_response)
+            print("MARKERS: ", marker)
             utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
             for period in weather_response['properties']['periods']:
