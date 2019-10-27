@@ -1,8 +1,11 @@
 import asyncio
 import datetime
-
+import logging
 import aiohttp
 from dateutil.parser import parse
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 class WeatherApiHelper:
