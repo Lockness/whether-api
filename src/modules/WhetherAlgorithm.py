@@ -366,6 +366,7 @@ class WhetherAlgorithm:
             print("MARKERS: ", marker)
             utc_time_from_now = now + datetime.timedelta(minutes=marker['arrival_time'])
 
+            # TODO - Just round up/down to find the range first, then get that period from the data
             for period in weather_response['properties']['periods']:
                 period_start_time = parse(period['startTime'])
                 period_end_time = parse(period['endTime'])

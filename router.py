@@ -22,7 +22,6 @@ def create_response(body='', status=400):
             'Access-Control-Allow-Origin': '*',
         },
     }
-    print("MARKER SIZE: ", len(body['equidistant_markers']))
     return response
 
 
