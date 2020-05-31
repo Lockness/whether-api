@@ -15,7 +15,7 @@ def whether_handler(params):
 
     # Get equidistant markers
     marker_distance = params.get('marker_distance', c.marker_distance)
-    equidistant_markers = whether_algorithm.get_equidistant_markers_from_polyline_points(all_polyline_points, marker_distance)
+    equidistant_markers = whether_algorithm.get_equidistant_markers_from_polyline_points(all_polyline_points, int(marker_distance))
 
     # Use the GoogleMaps Waypoints API to get the times at arrived at each marker
     # As well as a new set of "directions results" to supply the user

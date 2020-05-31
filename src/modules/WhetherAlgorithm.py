@@ -1,6 +1,5 @@
 import datetime
 import math
-import copy
 
 import googlemaps
 import numpy as np
