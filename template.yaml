@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  whether-api
+
+  SAM Template for Whether API
+
+Globals:
+  Function:
+    Timeout: 60
+
+
+Resources:
+  WhetherEndpoint:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      FunctionName: "whetherEndpoint"
+      Events:
+        HttpApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /whether
+            Method: POST
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Description: !Sub "API Gateway endpoints for whether"
+      Domain:
+        CertificateArn: arn:aws:acm:us-east-1:237093315022:certificate/435dcf09-4a9b-4453-a324-37df70e7a110
+        DomainName:
+          DomainName: "api2.whether.cloud"
+

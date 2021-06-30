@@ -2,3 +2,4 @@
 deploy/
 *__pycache__*
 *.prof
+.aws-sam
