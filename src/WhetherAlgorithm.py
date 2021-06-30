@@ -6,9 +6,9 @@ import numpy as np
 from dateutil.parser import parse
 from pytz import timezone
 
-import src.constants as c
-from src.modules.AsyncHelper import AsyncHelper
-from src.modules.GoogleClient import GoogleClient
+import constants as c
+from AsyncHelper import AsyncHelper
+from GoogleClient import GoogleClient
 
 
 class WhetherAlgorithm:

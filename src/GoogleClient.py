@@ -1,6 +1,6 @@
 import googlemaps
 
-import src.constants as c
+import constants as c
 
 
 class GoogleClient:
