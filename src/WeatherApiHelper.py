@@ -3,6 +3,7 @@ import datetime
 import logging
 import aiohttp
 from dateutil.parser import parse
+import requests
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -18,9 +19,11 @@ class WeatherApiHelper:
             lat=marker['lat'],
             lng=marker['lng']
         )
-        async with session.get(url) as resp:
-            data = await resp.json()
-        return data
+        print('URL: ', url)
+        response = requests.get(url)
+        print("response: ", response)
+        print("response json: ", response.json())
+        return response.json()
 
     async def download_one(self, marker):
         base_headers = {
